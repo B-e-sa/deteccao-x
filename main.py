@@ -32,10 +32,15 @@ while ret:
                                     topo_y_recorte:topo_y_recorte + maior_lado_recorte, 
                                     topo_x_recorte:topo_x_recorte + maior_lado_recorte]
                 
+                def linhas_duplicadas(linha1, linha2, tol_rho=1, tol_theta=1e-1):
+                    rho1, theta1 = linha1[0], linha1[1]
+                    rho2, theta2 = linha2[0], linha2[1]
+                    return (abs(rho1 - rho2) < tol_rho) and (abs(theta1 - theta2) < tol_theta)
+                
                 linhas = cv2.HoughLines(corte_quadrado, 1, np.pi / 180, 145)
                 
                 coordenadas_linhas = []
-                if linhas is not None and len(linhas) == 2:
+                if linhas is not None:
                     for linha in linhas:
                         for rho, theta in linha:
                             a = np.cos(theta)
@@ -58,19 +63,35 @@ while ret:
 
                             coordenadas_linhas.append([x1, y1, x2, y2])
 
-                    x1, y1, x2, y2 = coordenadas_linhas[0]
-                    x3, y3, y4, x4 = coordenadas_linhas[1]
-                    
-                    if y1 - y4 == 0 and x2 - x4 == 0:
-                        cv2.line(frame, (x1 + topo_x_recorte, y1 + topo_y_recorte), (x2 + topo_x_recorte, y2 + topo_y_recorte), (0, 255, 0), 2)
-                        cv2.line(frame, (x3 + topo_x_recorte, y3 + topo_y_recorte), (x4 + topo_x_recorte, y4 + topo_y_recorte), (0, 255, 0), 2)
+                    linhas_sem_duplicatas = [list(x) 
+                                                for x in set(tuple(sublist) 
+                                                    for sublist in coordenadas_linhas)]
+
+                    if len(linhas_sem_duplicatas) == 2:
+                        x1, y1, x2, y2 = linhas_sem_duplicatas[0]
+                        x3, y3, y4, x4 = linhas_sem_duplicatas[1]
                         
-                        for i in circulos_np[0, :]:
-                            cv2.circle(frame, (i[0], i[1]), i[2], (0, 255, 0), 2)
-                            cv2.circle(frame, (i[0], i[1]), 2, (0, 0, 255), 3)
+                        if y1 - y4 == 0 and x2 - x4 == 0:
+                            cv2.line(frame, 
+                                    (x1 + topo_x_recorte, y1 + topo_y_recorte), 
+                                    (x2 + topo_x_recorte, y2 + topo_y_recorte), 
+                                    (0, 255, 0), 
+                                    2)
+                            
+                            cv2.line(frame, 
+                                    (x3 + topo_x_recorte, y3 + topo_y_recorte), 
+                                    (x4 + topo_x_recorte, y4 + topo_y_recorte), 
+                                    (0, 255, 0), 
+                                    2)
+                            
+                            meio = None
+                            for i in circulos_np[0, :]:
+                                cv2.circle(frame, (i[0], i[1]), i[2], (0, 255, 0), 2)
+                                cv2.circle(frame, (i[0], i[1]), 2, (0, 0, 255), 3)
+                                meio = (i[0], i[1])
             
     cv2.imshow('Câmera', frame)
-
+    
     if cv2.waitKey(30) & 0xFF == ord('q'):
         break
 
